@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost & Found - Item Finder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>🔍 Lost & Found - Item Finder</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="owner.html">Owner Dashboard</a>
+                <a href="staff.html">Location Staff</a>
+            </div>
+        </nav>
+
+        <div class="finder-section">
+            <!-- NFC Scanner Section -->
+            <section class="panel scan-section">
+                <h3>📱 Scan Item Tag (NFC)</h3>
+                <div class="scan-input-group">
+                    <input type="text" id="nfcInput" placeholder="Scan NFC tag or enter tag code..." autofocus>
+                    <button onclick="handleManualScan()" class="btn-primary">Scan</button>
+                </div>
+                <p class="info-text">Place your NFC tag reader near the tag or manually enter the tag code</p>
+                <div id="scanMessage" class="message" style="display: none;"></div>
+            </section>
+
+            <!-- Item Found Section -->
+            <section id="itemFoundSection" class="panel" style="display: none;">
+                <h3>✅ Item Found!</h3>
+                <div id="itemDetails"></div>
+            </section>
+
+            <!-- Location Finder Section -->
+            <section class="panel location-section">
+                <h3>📍 Find Nearby Drop-off Locations</h3>
+                <div class="location-input-group">
+                    <div class="form-group">
+                        <label>Address or Location:</label>
+                        <input type="text" id="addressInput" placeholder="Enter your location">
+                    </div>
+                    <div class="form-group">
+                        <label>Search Radius (km):</label>
+                        <input type="number" id="radiusInput" value="5" min="1" max="50">
+                    </div>
+                    <button onclick="findLocations()" class="btn-primary">Find Locations</button>
+                    <button onclick="getCurrentLocation()" class="btn-secondary">📍 Use Current Location</button>
+                </div>
+                <div id="locationMessage" class="message" style="display: none;"></div>
+            </section>
+
+            <!-- Locations List Section -->
+            <section id="locationsSection" class="panel" style="display: none;">
+                <h3>Nearby Drop-off Locations</h3>
+                <div id="locationsList" class="locations-grid">
+                </div>
+            </section>
+
+            <!-- Chatbot Section -->
+            <section class="panel chatbot-section">
+                <h3>💬 Need Help? Chat with us</h3>
+                <div id="chatbox" class="chatbox">
+                    <div class="chat-messages">
+                        <div class="message-bot">
+                            <p>Hello! I'm your Lost & Found assistant. I can help you find drop-off locations or answer questions about the system. How can I help?</p>
+                        </div>
+                    </div>
+                    <div class="chat-input-group">
+                        <input type="text" id="chatInput" placeholder="Type your message...">
+                        <button onclick="sendChatMessage()" class="btn-primary">Send</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Location Detail Modal -->
+    <div id="locationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeLocationModal()">&times;</span>
+            <div id="locationDetail"></div>
+            <div class="modal-actions">
+                <button onclick="openDirections()" class="btn-primary">📍 Get Directions</button>
+                <button onclick="contactLocation()" class="btn-secondary">📞 Contact Location</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="finder.js"></script>
+</body>
+</html>
