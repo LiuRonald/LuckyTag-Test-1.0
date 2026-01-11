@@ -1,130 +1,117 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-const dbPath = path.join(__dirname, 'database.db');
-const db = new sqlite3.Database(dbPath);
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Initialize database tables
-function initializeDatabase() {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      // Users table
-      db.run(`
-        CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY,
-          email TEXT UNIQUE NOT NULL,
-          password TEXT NOT NULL,
-          firstName TEXT NOT NULL,
-          lastName TEXT NOT NULL,
-          phone TEXT NOT NULL,
-          emergencyContactName TEXT NOT NULL,
-          emergencyContactPhone TEXT NOT NULL,
-          userType TEXT CHECK(userType IN ('owner', 'staff')),
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // NFC Tags table
-      db.run(`
-        CREATE TABLE IF NOT EXISTS tags (
-          id TEXT PRIMARY KEY,
-          ownerId TEXT NOT NULL,
-          tagCode TEXT UNIQUE NOT NULL,
-          itemName TEXT NOT NULL,
-          itemDescription TEXT,
-          status TEXT DEFAULT 'active' CHECK(status IN ('active', 'lost', 'found', 'picked-up', 'discarded')),
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (ownerId) REFERENCES users(id)
-        )
-      `);
-
-      // Locations table
-      db.run(`
-        CREATE TABLE IF NOT EXISTS locations (
-          id TEXT PRIMARY KEY,
-          staffId TEXT NOT NULL,
-          name TEXT NOT NULL,
-          address TEXT NOT NULL,
-          phone TEXT NOT NULL,
-          latitude REAL,
-          longitude REAL,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (staffId) REFERENCES users(id)
-        )
-      `);
-
-      // Tag Scan History
-      db.run(`
-        CREATE TABLE IF NOT EXISTS scans (
-          id TEXT PRIMARY KEY,
-          tagId TEXT NOT NULL,
-          locationId TEXT,
-          scannedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          scannedBy TEXT,
-          FOREIGN KEY (tagId) REFERENCES tags(id),
-          FOREIGN KEY (locationId) REFERENCES locations(id),
-          FOREIGN KEY (scannedBy) REFERENCES users(id)
-        )
-      `);
-
-      // Messages table
-      db.run(`
-        CREATE TABLE IF NOT EXISTS messages (
-          id TEXT PRIMARY KEY,
-          fromUserId TEXT NOT NULL,
-          toUserId TEXT NOT NULL,
-          tagId TEXT,
-          subject TEXT NOT NULL,
-          message TEXT NOT NULL,
-          emailSent BOOLEAN DEFAULT 0,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (fromUserId) REFERENCES users(id),
-          FOREIGN KEY (toUserId) REFERENCES users(id),
-          FOREIGN KEY (tagId) REFERENCES tags(id)
-        )
-      `, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  });
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
+  console.error('Please set these in your .env file');
+  process.exit(1);
 }
 
-// Helper functions
-function runAsync(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Initialize database (verify connection)
+async function initializeDatabase() {
+  try {
+    // Test connection by querying users table
+    const { error } = await supabase.from('users').select('id').limit(1);
+    if (error) {
+      console.error('Database connection error:', error);
+      throw error;
+    }
+    console.log('✓ Connected to Supabase successfully');
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    throw error;
+  }
 }
 
-function getAsync(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+// Query helper functions
+async function runAsync(table, operation, data) {
+  try {
+    let query = supabase.from(table);
+    
+    if (operation === 'insert') {
+      const { data: result, error } = await query.insert([data]).select();
+      if (error) throw error;
+      return result;
+    } else if (operation === 'update') {
+      const { data: result, error } = await query.update(data).eq('id', data.id).select();
+      if (error) throw error;
+      return result;
+    } else if (operation === 'delete') {
+      const { error } = await query.delete().eq('id', data);
+      if (error) throw error;
+      return { success: true };
+    }
+  } catch (error) {
+    throw error;
+  }
 }
 
-function allAsync(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+async function getAsync(table, filters = {}) {
+  try {
+    let query = supabase.from(table).select('*');
+    
+    // Apply filters
+    for (const [key, value] of Object.entries(filters)) {
+      query = query.eq(key, value);
+    }
+    
+    const { data, error } = await query.single();
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function allAsync(table, filters = {}, options = {}) {
+  try {
+    let query = supabase.from(table).select('*');
+    
+    // Apply filters
+    for (const [key, value] of Object.entries(filters)) {
+      query = query.eq(key, value);
+    }
+    
+    // Apply options (order, limit, etc)
+    if (options.order) {
+      const { column, ascending } = options.order;
+      query = query.order(column, { ascending });
+    }
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Raw SQL query function for complex queries
+async function rawQuery(sql, params = []) {
+  try {
+    const { data, error } = await supabase.rpc('execute_sql', { sql, params });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    throw error;
+  }
 }
 
 module.exports = {
-  db,
+  supabase,
   initializeDatabase,
   runAsync,
   getAsync,
-  allAsync
+  allAsync,
+  rawQuery
 };

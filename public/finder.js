@@ -137,7 +137,16 @@ async function findLocations() {
         }
 
         const response = await fetch(`/api/locations/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
-        const locations = await response.json();
+        const data = await response.json();
+
+        // Check if response contains an error
+        if (!response.ok || data.error) {
+            showLocationMessage('Error finding locations: ' + (data.error || 'Unknown error'), 'error');
+            return;
+        }
+
+        // Ensure data is an array
+        const locations = Array.isArray(data) ? data : [];
 
         if (locations.length === 0) {
             showLocationMessage(`No locations found within ${radius}km`, 'info');

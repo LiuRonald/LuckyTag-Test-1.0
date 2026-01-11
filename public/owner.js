@@ -87,7 +87,7 @@ function switchTab(tab) {
 function showAuth() {
     document.getElementById('authSection').style.display = 'block';
     document.getElementById('dashboardSection').style.display = 'none';
-    document.getElementById('navMenu').innerHTML = '';
+    document.getElementById('navMenu').innerHTML = '<a href="finder.html">Item Finder</a><a href="staff-admin.html">Staff Admin</a>';
 }
 
 function showDashboard() {
@@ -164,12 +164,12 @@ function displayTags(filter) {
     tagsList.innerHTML = filtered.map(tag => `
         <div class="tag-card status-${tag.status}" onclick="openTagModal('${tag.id}')">
             <div class="tag-header">
-                <h4>${tag.itemName}</h4>
+                <h4>${tag.item_name}</h4>
                 <span class="status-badge status-${tag.status}">${tag.status}</span>
             </div>
-            <p class="tag-code">Code: <strong>${tag.tagCode}</strong></p>
-            <p class="tag-desc">${tag.itemDescription || 'No description'}</p>
-            <small class="tag-date">Created: ${new Date(tag.createdAt).toLocaleDateString()}</small>
+            <p class="tag-code">Code: <strong>${tag.tag_code}</strong></p>
+            <p class="tag-desc">${tag.item_description || 'No description'}</p>
+            <small class="tag-date">Created: ${new Date(tag.created_at).toLocaleDateString()}</small>
         </div>
     `).join('');
 }
@@ -178,12 +178,12 @@ async function openTagModal(tagId) {
     currentTagId = tagId;
     const tag = allTags.find(t => t.id === tagId);
     
-    document.getElementById('modalTagName').textContent = tag.itemName;
+    document.getElementById('modalTagName').textContent = tag.item_name;
     document.getElementById('modalTagDetails').innerHTML = `
-        <p><strong>Code:</strong> ${tag.tagCode}</p>
-        <p><strong>Description:</strong> ${tag.itemDescription || 'N/A'}</p>
+        <p><strong>Code:</strong> ${tag.tag_code}</p>
+        <p><strong>Description:</strong> ${tag.item_description || 'N/A'}</p>
         <p><strong>Status:</strong> ${tag.status}</p>
-        <p><strong>Created:</strong> ${new Date(tag.createdAt).toLocaleDateString()}</p>
+        <p><strong>Created:</strong> ${new Date(tag.created_at).toLocaleDateString()}</p>
     `;
     
     document.getElementById('statusSelect').value = tag.status;
@@ -264,7 +264,7 @@ function displayMessages(messages) {
         <div class="message-card">
             <div class="message-header">
                 <h4>${msg.subject}</h4>
-                <small>${new Date(msg.createdAt).toLocaleString()}</small>
+                <small>${new Date(msg.created_at).toLocaleString()}</small>
             </div>
             <p><strong>From:</strong> ${msg.fromFirstName} ${msg.fromLastName}</p>
             ${msg.itemName ? `<p><strong>Item:</strong> ${msg.itemName}</p>` : ''}
