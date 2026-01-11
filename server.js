@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? ['https://your-domain.com', 'https://your-vercel-url.vercel.app']
+  ? true  // Allow all origins in production for Vercel
   : ['http://localhost:3000', 'http://localhost:3001'];
 
 app.use(cors({
